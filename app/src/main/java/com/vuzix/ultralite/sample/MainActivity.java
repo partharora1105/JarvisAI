@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_INTERNET = 1;
     private EditText notificationEditText;
     private SpeechRecognizer speechRecognizer;
-    private static final String OpenAiToken = "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" ;
+    private static final String OpenAiToken = "YOUR KEY HERE" ;
 
 
     @Override
