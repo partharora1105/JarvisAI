@@ -1,1 +1,2 @@
-# JarvisAI---AI-Assistant-for-Vuzix-Smart-Glasses
+# JarvisAI
+AI-Assistant-for-Vuzix-Smart-Glasses
