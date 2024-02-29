@@ -50,9 +50,10 @@ import java.util.concurrent.Future;
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_RECORD_AUDIO = 1;
     private static final int PERMISSION_REQUEST_INTERNET = 1;
+    private EditText speechText;
     private EditText notificationEditText;
     private SpeechRecognizer speechRecognizer;
-    private static final String OpenAiToken = "YOUR KEY HERE" ;
+    private static final String OpenAiToken = "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" ;
 
 
     @Override
@@ -67,28 +68,19 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, PERMISSION_REQUEST_INTERNET);
         }
 
-        // Initialize views
-//        ImageView installedImageView = findViewById(R.id.installed);
+
         ImageView linkedImageView = findViewById(R.id.linked);
-//        TextView nameTextView = findViewById(R.id.name);
-//        ImageView connectedImageView = findViewById(R.id.connected);
         Button notificationButton = findViewById(R.id.send_notification);
         notificationEditText = findViewById(R.id.notification_text);
+        speechText = findViewById(R.id.speech_text);
 
         UltraliteSDK ultralite = UltraliteSDK.get(this);
-
-//        ultralite.getAvailable().observe(this, available ->
-//                installedImageView.setImageResource(available ? R.drawable.ic_check_24 : R.drawable.ic_close_24));
 
         ultralite.getLinked().observe(this, linked -> {
             linkedImageView.setImageResource(linked ? R.drawable.ic_check_24 : R.drawable.ic_close_24);
 //            nameTextView.setText(ultralite.getName());
         });
 
-//        ultralite.getConnected().observe(this, connected -> {
-//            connectedImageView.setImageResource(connected ? R.drawable.ic_check_24 : R.drawable.ic_close_24);
-//            notificationButton.setEnabled(connected);
-//        });
 
         // Initialize SpeechRecognizer
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
@@ -126,14 +118,14 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onResults(Bundle results) {
-                // Process speech recognition results
                 ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 if (matches != null && !matches.isEmpty()) {
-                    String query = matches.get(0); // Take the first result
-                    // Pass the query to GPT
-                    queryGPT(query);
+                    String spech_text = matches.get(0); // Take the first result
+                    analyzeSpeech(spech_text);
+                    startSpeechRecognition();
                 } else {
                     Toast.makeText(MainActivity.this, "No speech input recognized", Toast.LENGTH_SHORT).show();
+                    startSpeechRecognition();
                 }
             }
 
@@ -184,9 +176,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void queryGPT(String query) {
-        UltraliteSDK ultralite = UltraliteSDK.get(this);
-        query = query + "(Answer in less than 20 words)";
+    private void analyzeSpeech(String voice_input) {
+        speechText.setText(voice_input);
+        if (voice_input.toLowerCase().contains("schedule")){
+            pull_schedule(voice_input);
+        }
+        if (voice_input.toLowerCase().contains("wonder")){
+            askQuestion(voice_input);
+        }
+    }
+    private void askQuestion(String voice_input) {
+        String query = voice_input + "(Answer in less than 20 words)";
+        String output = queryGpt(query);
+        sendToGlasses(output);
+    }
+    private void pull_schedule(String voice_input) {
+        String query =  "Extarct the date in the following string and" +
+                "return date in only MM-DD-2024 format (dont return anything" +
+                "else) : " + voice_input;
+        String date= queryGpt(query);
+        String availability = getAvailability(date);
+        sendToGlasses(availability);
+    }
+
+    private String queryGpt(String query) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<String> future = executor.submit(new PostTask(query));
         try {
@@ -196,19 +209,29 @@ public class MainActivity extends AppCompatActivity {
             if (choices.length() > 0) {
                 JSONObject choice = choices.getJSONObject(0);
                 JSONObject message = choice.getJSONObject("message");
-                String content = message.getString("content");
-                notificationEditText.setText(content);
-                String notificationText = notificationEditText.getText().toString();
-                ultralite.sendNotification("Jarvis",  notificationText,
-                        loadLVGLImage(this, R.drawable.rocket));
+                return message.getString("content");
+
             } else {
-                notificationEditText.setText("No response content found");
+                return "NA";
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             executor.shutdown();
         }
+        return "NA";
+    }
+
+    private String getAvailability(String date) {
+        return date + "\n2pm-3pm \n5pm-6pm";
+    }
+
+    private void sendToGlasses(String content) {
+        UltraliteSDK ultralite = UltraliteSDK.get(this);
+        notificationEditText.setText(content);
+        String notificationText = notificationEditText.getText().toString();
+        ultralite.sendNotification("Jarvis",  notificationText,
+                loadLVGLImage(this, R.drawable.rocket));
     }
 
     private static class PostTask implements Callable<String> {
