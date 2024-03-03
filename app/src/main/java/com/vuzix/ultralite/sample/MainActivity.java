@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText speechText;
     private EditText notificationEditText;
     private SpeechRecognizer speechRecognizer;
-    private static final String OpenAiToken = "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" ;
+    private static final String OpenAiToken = "" ;
 
 
     @Override
@@ -181,12 +181,13 @@ public class MainActivity extends AppCompatActivity {
         if (voice_input.toLowerCase().contains("schedule")){
             pull_schedule(voice_input);
         }
-        if (voice_input.toLowerCase().contains("wonder")){
+        if (voice_input.toLowerCase().contains("jarvis")){
             askQuestion(voice_input);
         }
     }
     private void askQuestion(String voice_input) {
-        String query = voice_input + "(Answer in less than 20 words)";
+        String query = "You are Jarvis, answer this in " +
+                "less than 20 words - " + voice_input ;
         String output = queryGpt(query);
         sendToGlasses(output);
     }
