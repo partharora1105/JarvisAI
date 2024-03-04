@@ -47,6 +47,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_RECORD_AUDIO = 1;
     private static final int PERMISSION_REQUEST_INTERNET = 1;
@@ -192,12 +195,23 @@ public class MainActivity extends AppCompatActivity {
         sendToGlasses(output);
     }
     private void pull_schedule(String voice_input) {
-        String query =  "Extarct the date in the following string and" +
-                "return date in only MM-DD-2024 format (dont return anything" +
+        String query =  "The current date & time is: " + getCurrentDateTimeFormatted() +
+                "return date in only YYYY-MM-DD format (dont return anything" +
                 "else) : " + voice_input;
         String date= queryGpt(query);
         String availability = getAvailability(date);
         sendToGlasses(availability);
+    }
+
+    public static String getCurrentDateTimeFormatted() {
+        // Get the current date and time
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Define the format
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        
+        // Format and return the current date and time
+        return now.format(formatter);
     }
 
     private String queryGpt(String query) {
@@ -223,8 +237,48 @@ public class MainActivity extends AppCompatActivity {
         return "NA";
     }
 
-    private String getAvailability(String date) {
-        return date + "\n2pm-3pm \n5pm-6pm";
+    private static Calendar getCalendarService() throws Exception {
+        // Load client secrets.
+        InputStream in = CalendarEventsForDay.class.getResourceAsStream("/credentials.json");
+        GoogleCredential credential = GoogleCredential.fromStream(in)
+                .createScoped(Collections.singleton(CalendarScopes.CALENDAR_READONLY));
+        return new Calendar.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), credential)
+                .setApplicationName("Google Calendar API Java Integration")
+                .build();
+    }
+
+    private String getAvailability(String date) throws Exception {
+        Calendar service = getCalendarService();
+
+        DateTime startTime = new DateTime(date + "T00:00:00Z"); // Start of the day in RFC3339 format
+        DateTime endTime = new DateTime(date + "T23:59:59Z"); // End of the day in RFC3339 format
+
+        Events events = service.events().list("primary")
+                .setTimeMin(startTime)
+                .setTimeMax(endTime)
+                .setOrderBy("startTime")
+                .setSingleEvents(true)
+                .execute();
+
+        List<Event> items = events.getItems();
+        if (items.isEmpty()) {
+            return "Nothing planned so far for " + date;
+        } else {
+            StringBuilder eventsDetails = new StringBuilder();
+            for (Event event : items) {
+                DateTime start = event.getStart().getDateTime();
+                if (start == null) {
+                    start = event.getStart().getDate();
+                }
+                eventsDetails.append(event.getSummary())
+                              .append(" (")
+                              .append(start)
+                              .append("), ");
+            }
+            // Remove the trailing comma and space
+            eventsDetails.setLength(eventsDetails.length() - 2);
+            return eventsDetails.toString();
+        }
     }
 
     private void sendToGlasses(String content) {
