@@ -39,4 +39,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.10.0")
     implementation("com.vuzix:ultralite-sdk-android:1.1")
+    implementation ("com.google.api-client:google-api-client:1.32.1")
+    implementation ("com.google.apis:google-api-services-calendar:v3-rev305-1.25.0")
+
 }
