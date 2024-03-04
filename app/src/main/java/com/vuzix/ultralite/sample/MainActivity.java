@@ -13,6 +13,7 @@ import java.net.URL;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -45,6 +46,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
@@ -61,6 +63,7 @@ import org.json.JSONObject;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -89,40 +92,49 @@ import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import android.os.AsyncTask;
 
 
 
 public class MainActivity extends AppCompatActivity {
+    /**
+     * A Google Calendar API service object used to access the API.
+     * Note: Do not confuse this class with API library's model classes, which
+     * represent specific data structures.
+     */
+    com.google.api.services.calendar.Calendar mService;
+    GoogleAccountCredential credential;
+
+    final HttpTransport transport = new NetHttpTransport();
+    final JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
+
+    static final int REQUEST_ACCOUNT_PICKER = 1000;
+    static final int REQUEST_AUTHORIZATION = 1001;
+    static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
+    private static final String PREF_ACCOUNT_NAME = "accountName";
+    private static final String[] SCOPES = {CalendarScopes.CALENDAR_READONLY, CalendarScopes.CALENDAR};
+
     private static final int PERMISSION_REQUEST_RECORD_AUDIO = 1;
     private static final int PERMISSION_REQUEST_INTERNET = 1;
     private EditText speechText;
     private EditText notificationEditText;
     private SpeechRecognizer speechRecognizer;
-    private static final String OpenAiToken = "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" ;
+    private static final String OpenAiToken = "" ;
 
     private static final int RC_SIGN_IN = 123;
     private static final String APPLICATION_NAME = "Google Calendar API Java Quickstart";
-    /**
-     * Global instance of the JSON factory.
-     */
-    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-    /**
-     * Directory to store authorization tokens for this application.
-     */
-    private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
-    /**
-     * Global instance of the scopes required by this quickstart.
-     * If modifying these scopes, delete your previously saved tokens/ folder.
-     */
-    private static final List<String> SCOPES =
-            Collections.singletonList(CalendarScopes.CALENDAR_READONLY);
-    private Calendar googleCalendarService;
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
 
+
+//        Working Auth Sys
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestScopes(new Scope(CalendarScopes.CALENDAR_READONLY))
                 .requestEmail()
@@ -131,6 +143,18 @@ public class MainActivity extends AppCompatActivity {
         GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
         Intent signInIntent = googleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
+        // Initialize credentials and service object.
+        SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+        credential = GoogleAccountCredential.usingOAuth2(
+                        getApplicationContext(), Arrays.asList(SCOPES))
+                .setBackOff(new ExponentialBackOff())
+                .setSelectedAccountName(settings.getString(PREF_ACCOUNT_NAME, null));
+        Log.d("GoogleCloud", "Credential Generated.");
+        mService = new com.google.api.services.calendar.Calendar.Builder(
+                transport, jsonFactory, credential)
+                .setApplicationName("JarvisAI")
+                .build();
+        Log.d("GoogleCloud", "Service Generated.");
 
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -152,6 +176,8 @@ public class MainActivity extends AppCompatActivity {
             linkedImageView.setImageResource(linked ? R.drawable.ic_check_24 : R.drawable.ic_close_24);
 //            nameTextView.setText(ultralite.getName());
         });
+
+
 
 
 
@@ -228,62 +254,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.d("PARTH", "Started on activity");
-        // Handle Google Sign-In result
-        if (requestCode == RC_SIGN_IN) {
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                if (account != null) {
-                    Log.d("PARTH", "Account not null");
-                    Log.d("PARTH", account.getDisplayName());
-                    InputStream in = MainActivity.class.getResourceAsStream("/credentials.json");
-                    if (in != null) {
-                        Log.d("PARTH", "credentials found");
-                        GoogleClientSecrets clientSecrets =
-                                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-                        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-                        Log.d("PARTH", "trans generated");
-                        // Build flow and trigger user authorization request.
-                        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-                                .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
-                                .setAccessType("offline")
-                                .build();
-                        Log.d("PARTH", "flow generated");
-                        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-                        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
-                        //returns an authorized Credential object.
-                        Log.d("PARTH", "cred generated");
-                    }
-
-
-
-
-
-                    // Use the account to access the calendar
-//                    googleCalendarService = new Calendar.Builder(
-//                            AndroidHttp.newCompatibleTransport(), JacksonFactory.getDefaultInstance(), account.getCredentials())
-//                            .setApplicationName("YourAppName")
-//                            .build();
-//
-//                    // Call a method to retrieve events
-//                    fetchEventsFromCalendar();
-                }
-            } catch (ApiException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (GeneralSecurityException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-
 
 
 
@@ -299,11 +269,33 @@ public class MainActivity extends AppCompatActivity {
         return drawable.getBitmap();
     }
 
+    private void google_cal(){
+        DateTime now = new DateTime(System.currentTimeMillis());
+        Log.d("GoogleCloud", "Date Generated.");
+        mService.events();
+        Log.d("GoogleCloud", "Events Generated." + mService.events());
+        Events events = null;
+        try {
+            Calendar.Events.List cal_events = mService.events().list("primary")
+                    .setMaxResults(10)
+                    .setTimeMin(now)
+                    .setOrderBy("startTime")
+                    .setSingleEvents(true);
+            Log.d("GoogleCloud", "cal events generated"+ cal_events);
 
-    private void my_test() {
+            cal_events.execute();
 
+            Log.d("GoogleCloud", "No error.");
+        } catch (IOException e) {
+            Log.d("GoogleCloud", "Events Error.");
+        }
+        assert events != null;
+        List<Event> items = events.getItems();
+        Log.d("GoogleCloud", "Items Generated.");
     }
-    private void startSpeechRecognition() {
+
+
+    private void startSpeechRecognition(){
         // Create speech recognition intent
         Intent speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -331,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
     private void pull_schedule(String voice_input) {
         String query =  "Extarct the date in the following string and" +
                 "return date in only MM-DD-2024 format (dont return anything" +
-                "else) : " + voice_input;
+                "else) If you cant return \"Scedule\": " + voice_input;
         String date= queryGpt(query);
         String availability = getAvailability(date);
         sendToGlasses(availability);

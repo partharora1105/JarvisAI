@@ -1,3 +1,4 @@
+
 import com.android.build.api.dsl.Packaging
 
 plugins {
@@ -55,6 +56,7 @@ android {
 }
 
 dependencies {
+
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.10.0")
     implementation("com.vuzix:ultralite-sdk-android:1.1")
@@ -63,5 +65,11 @@ dependencies {
     implementation("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0")
     implementation("com.google.android.gms:play-services-auth:21.0.0")
     implementation("com.google.api-client:google-api-client-android:1.31.3")
-    implementation("com.google.api-client:google-api-client:1.31.3")
+    implementation("com.jakewharton:butterknife:7.0.1")
+    implementation("com.google.apis:google-api-services-calendar:v3-rev125-1.20.0")
+    implementation("com.google.api-client:google-api-client-gson:1.20.0")
+    implementation("com.google.api-client:google-api-client-android:1.20.0")
+    implementation("com.google.api-client:google-api-client:1.20.0")
+    implementation("com.google.android.gms:play-services:7.3.0")
 }
+
