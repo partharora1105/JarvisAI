@@ -195,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
         sendToGlasses(output);
     }
     private void pull_schedule(String voice_input) {
-        String query =  "The current date & time is: " + getCurrentDateTimeFormatted() +
+        String query =  "The current day, date & time is: " + getCurrentDateTimeFormatted() +
                 "return date in only YYYY-MM-DD format (dont return anything" +
                 "else) : " + voice_input;
         String date= queryGpt(query);
@@ -208,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
         LocalDateTime now = LocalDateTime.now();
         
         // Define the format
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd HH:mm:ss");
         
         // Format and return the current date and time
         return now.format(formatter);
