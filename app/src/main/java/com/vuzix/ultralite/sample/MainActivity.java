@@ -3,7 +3,6 @@ package com.vuzix.ultralite.sample;
 import android.Manifest;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +24,6 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -51,10 +49,6 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
 import com.vuzix.ultralite.LVGLImage;
-import com.vuzix.ultralite.Layout;
-import com.vuzix.ultralite.TextAlignment;
-import com.vuzix.ultralite.TextWrapMode;
-import com.vuzix.ultralite.UltraliteColor;
 import com.vuzix.ultralite.UltraliteSDK;
 
 import org.json.JSONArray;
@@ -75,52 +69,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.tasks.Task;
 //import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.DateTime;
-import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.Events;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
-import com.google.api.client.googleapis.extensions.android.gms.auth.GooglePlayServicesAvailabilityIOException;
-import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.services.calendar.Calendar;
-import com.google.api.services.calendar.CalendarScopes;
-import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.Events;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import android.os.AsyncTask;
-
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.util.DateTime;
-import com.google.api.client.util.store.FileDataStoreFactory;
-import com.google.api.services.calendar.Calendar;
-import com.google.api.services.calendar.CalendarScopes;
-import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.Events;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.security.GeneralSecurityException;
-import java.util.Collections;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     /**
@@ -138,7 +93,12 @@ public class MainActivity extends AppCompatActivity {
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     private static final String PREF_ACCOUNT_NAME = "accountName";
-    private static final String[] SCOPES = {CalendarScopes.CALENDAR_READONLY, CalendarScopes.CALENDAR};
+    private static final List<String> SCOPES =
+            Collections.singletonList(CalendarScopes.CALENDAR_READONLY);
+
+    private static final String CREDENTIALS_FILE_PATH = "resources/credentials.json";
+
+    private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     private static final int PERMISSION_REQUEST_RECORD_AUDIO = 1;
     private static final int PERMISSION_REQUEST_INTERNET = 1;
@@ -151,6 +111,27 @@ public class MainActivity extends AppCompatActivity {
     private static final String APPLICATION_NAME = "Google Calendar API Java Quickstart";
 
 
+    private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT)
+            throws IOException {
+        // Load client secrets.
+        InputStream in = MainActivity.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (in == null) {
+            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
+        }
+        GoogleClientSecrets clientSecrets =
+                GoogleClientSecrets.load(jsonFactory, new InputStreamReader(in));
+
+        // Build flow and trigger user authorization request.
+        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
+                HTTP_TRANSPORT, jsonFactory, clientSecrets, SCOPES)
+                .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
+                .setAccessType("offline")
+                .build();
+        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
+        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+        //returns an authorized Credential object.
+        return credential;
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -170,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
         // Initialize credentials and service object.
         SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
         credential = GoogleAccountCredential.usingOAuth2(
-                        getApplicationContext(), Arrays.asList(SCOPES))
+                        getApplicationContext(), Arrays.asList(SCOPES.toString()))
                 .setBackOff(new ExponentialBackOff())
                 .setSelectedAccountName(settings.getString(PREF_ACCOUNT_NAME, null));
         Log.d("GoogleCloud", "Credential Generated.");
@@ -293,29 +274,36 @@ public class MainActivity extends AppCompatActivity {
         return drawable.getBitmap();
     }
 
-    private void google_cal(){
+    private String google_cal() throws GeneralSecurityException, IOException {
+        // Build a new authorized API client service.
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        Calendar service =
+                new Calendar.Builder(HTTP_TRANSPORT, jsonFactory, getCredentials(HTTP_TRANSPORT))
+                        .setApplicationName(APPLICATION_NAME)
+                        .build();
+
+        // List the next 10 events from the primary calendar.
         DateTime now = new DateTime(System.currentTimeMillis());
-        Log.d("GoogleCloud", "Date Generated.");
-        mService.events();
-        Log.d("GoogleCloud", "Events Generated." + mService.events());
-        Events events = null;
-        try {
-            Calendar.Events.List cal_events = mService.events().list("primary")
-                    .setMaxResults(10)
-                    .setTimeMin(now)
-                    .setOrderBy("startTime")
-                    .setSingleEvents(true);
-            Log.d("GoogleCloud", "cal events generated"+ cal_events);
-
-            cal_events.execute();
-
-            Log.d("GoogleCloud", "No error.");
-        } catch (IOException e) {
-            Log.d("GoogleCloud", "Events Error.");
-        }
-        assert events != null;
+        Events events = service.events().list("primary")
+                .setMaxResults(10)
+                .setTimeMin(now)
+                .setOrderBy("startTime")
+                .setSingleEvents(true)
+                .execute();
         List<Event> items = events.getItems();
-        Log.d("GoogleCloud", "Items Generated.");
+        if (items.isEmpty()) {
+            System.out.println("No upcoming events found.");
+        } else {
+            System.out.println("Upcoming events");
+            for (Event event : items) {
+                DateTime start = event.getStart().getDateTime();
+                if (start == null) {
+                    start = event.getStart().getDate();
+                }
+                System.out.printf("%s (%s)\n", event.getSummary(), start);
+            }
+        }
+        return null;
     }
 
 
@@ -349,7 +337,12 @@ public class MainActivity extends AppCompatActivity {
                 "return date in only YYYY-MM-DD format (don't return anything" +
                 "else) : " + voice_input;
         String date= queryGpt(query);
-        String availability = getAvailability(date);
+        String availability = null;
+        try {
+            availability = getAvailability(date);
+        } catch (GeneralSecurityException | IOException e) {
+            throw new RuntimeException(e);
+        }
         sendToGlasses(availability);
     }
 
@@ -387,8 +380,8 @@ public class MainActivity extends AppCompatActivity {
         return "NA";
     }
 
-    private String getAvailability(String date) {
-        return date + "\n2pm-3pm \n5pm-6pm";
+    private String getAvailability(String date) throws GeneralSecurityException, IOException {
+        return google_cal();
     }
 
     private void sendToGlasses(String content) {
