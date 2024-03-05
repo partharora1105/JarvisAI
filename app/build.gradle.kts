@@ -66,7 +66,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.0.0")
     implementation("com.google.api-client:google-api-client-android:1.31.3")
     implementation("com.jakewharton:butterknife:7.0.1")
-    implementation("com.google.apis:google-api-services-calendar:v3-rev125-1.20.0")
+    implementation("com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0")
     implementation("com.google.api-client:google-api-client-gson:1.20.0")
     implementation("com.google.api-client:google-api-client-android:1.20.0")
     implementation("com.google.api-client:google-api-client:1.20.0")
