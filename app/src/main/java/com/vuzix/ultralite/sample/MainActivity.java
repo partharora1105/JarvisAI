@@ -170,6 +170,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+        try {
+            google_cal();
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
         ImageView linkedImageView = findViewById(R.id.linked);
         Button notificationButton = findViewById(R.id.send_notification);
         notificationEditText = findViewById(R.id.notification_text);
@@ -274,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
         return drawable.getBitmap();
     }
 
-    private String google_cal() throws GeneralSecurityException, IOException {
+    private String google_cal() {
         // Build a new authorized API client service.
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
         Calendar service =
@@ -292,7 +301,8 @@ public class MainActivity extends AppCompatActivity {
                 .execute();
         List<Event> items = events.getItems();
         if (items.isEmpty()) {
-            System.out.println("No upcoming events found.");
+            return
+                    ("No upcoming events found.");
         } else {
             System.out.println("Upcoming events");
             for (Event event : items) {
@@ -300,12 +310,10 @@ public class MainActivity extends AppCompatActivity {
                 if (start == null) {
                     start = event.getStart().getDate();
                 }
-                System.out.printf("%s (%s)\n", event.getSummary(), start);
+                return event.getSummary();
             }
         }
-        return null;
     }
-
 
     private void startSpeechRecognition(){
         // Create speech recognition intent
@@ -337,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
                 "return date in only YYYY-MM-DD format (don't return anything" +
                 "else) : " + voice_input;
         String date= queryGpt(query);
-        String availability = null;
+        String availability = "Error getting availability";
         try {
             availability = getAvailability(date);
         } catch (GeneralSecurityException | IOException e) {
