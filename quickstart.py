@@ -142,7 +142,7 @@ try:
         'timeZone': 'America/New_York',
     },
     'attendees': [
-        {'email': 'anand.anvith@gmail.com'},
+        {'email': 'xxxxx@gmail.com'},
     ],
     }
   event = service.events().insert(calendarId='primary', body=event).execute()

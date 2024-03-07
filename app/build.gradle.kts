@@ -4,6 +4,7 @@ import com.android.build.api.dsl.Packaging
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 
@@ -71,5 +72,7 @@ dependencies {
     implementation("com.google.api-client:google-api-client-android:1.20.0")
     implementation("com.google.api-client:google-api-client:1.20.0")
     implementation("com.google.android.gms:play-services:7.3.0")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.3"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 }
-
