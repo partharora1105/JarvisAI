@@ -12,6 +12,7 @@ import java.net.URL;
 
 import android.content.Context;
 import android.content.Intent;
+import com.google.android.gms.tasks.OnCompleteListener;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -21,19 +22,31 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.fragment.app.FragmentActivity;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.identity.BeginSignInRequest;
+import com.google.android.gms.auth.api.identity.Identity;
+import com.google.android.gms.auth.api.identity.SignInClient;
+import com.google.android.gms.auth.api.identity.SignInCredential;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.tasks.Task;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
@@ -48,6 +61,11 @@ import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.vuzix.ultralite.LVGLImage;
 import com.vuzix.ultralite.UltraliteSDK;
 
@@ -108,7 +126,16 @@ public class MainActivity extends AppCompatActivity {
     private static final String OpenAiToken = "" ;
 
     private static final int RC_SIGN_IN = 123;
+    BeginSignInRequest signInRequest;
     private static final String APPLICATION_NAME = "Google Calendar API Java Quickstart";
+
+    private SignInClient oneTapClient;
+
+    SignInButton signInButton;
+    GoogleApiClient mGoogleApiClient;
+    private FirebaseAuth mAuth;
+
+
 
 
     private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT)
@@ -133,33 +160,105 @@ public class MainActivity extends AppCompatActivity {
         return credential;
     }
 
+    private void signIn() {
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    private static final int REQ_ONE_TAP = 2;
+    private boolean showOneTapUI = true;
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode) {
+            case REQ_ONE_TAP:
+                try {
+                    SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(data);
+                    String idToken = credential.getGoogleIdToken();
+                    if (idToken !=  null) {
+                        // Got an ID token from Google. Use it to authenticate
+                        // with Firebase.
+//                        Log.d(TAG, "Got ID token.");
+
+                        AuthCredential firebaseCredential = GoogleAuthProvider.getCredential(idToken, null);
+                        mAuth.signInWithCredential(firebaseCredential)
+                                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<AuthResult> task) {
+                                        if (task.isSuccessful()) {
+                                            // Sign in success, update UI with the signed-in user's information
+//                                            Log.d("signInWithCredential:success");
+                                            FirebaseUser user = mAuth.getCurrentUser();
+//                                            updateUI(user);
+                                        } else {
+                                            // If sign in fails, display a message to the user.
+//                                            Log.w(TAG, "signInWithCredential:failure", task.getException());
+//                                            updateUI(null);
+                                        }
+                                    }
+                                });
+                    }
+                } catch (ApiException e) {
+                    // ...
+                }
+                break;
+        }
+    }
+
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        System.out.println("hit the create fn");
         setContentView(R.layout.main_activity);
 
 
-//        Working Auth Sys
-        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestScopes(new Scope(CalendarScopes.CALENDAR_READONLY))
-                .requestEmail()
-                .build();
+////        Working Auth Sys
+//        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+//                .requestScopes(new Scope(CalendarScopes.CALENDAR_EVENTS))
+//                .requestEmail()
+//                .build();
+//
+//        mGoogleApiClient = new GoogleApiClient.Builder(this)
+//                .enableAutoManage((FragmentActivity) this, (GoogleApiClient.OnConnectionFailedListener) this)
+//                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+//                .build();
+//
+//        signInButton = (SignInButton) findViewById(R.id.signInButton);
+//        signInButton.setOnClickListener((View.OnClickListener) this);
 
-        GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
-        Intent signInIntent = googleSignInClient.getSignInIntent();
-        startActivityForResult(signInIntent, RC_SIGN_IN);
-        // Initialize credentials and service object.
-        SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
-        credential = GoogleAccountCredential.usingOAuth2(
-                        getApplicationContext(), Arrays.asList(SCOPES.toString()))
-                .setBackOff(new ExponentialBackOff())
-                .setSelectedAccountName(settings.getString(PREF_ACCOUNT_NAME, null));
-        Log.d("GoogleCloud", "Credential Generated.");
-        mService = new com.google.api.services.calendar.Calendar.Builder(
-                transport, jsonFactory, credential)
-                .setApplicationName("JarvisAI")
+
+        oneTapClient = Identity.getSignInClient(this);
+        signInRequest = BeginSignInRequest.builder()
+                .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                        .setSupported(true)
+                        // Your server's client ID, not your Android client ID.
+                        .setServerClientId("137591440076-7sa937qr4tvi3q4tnm3tmobmpil33dkn.apps.googleusercontent.com")
+                        // Only show accounts previously used to sign in.
+                        .setFilterByAuthorizedAccounts(true)
+                        .build())
                 .build();
-        Log.d("GoogleCloud", "Service Generated.");
+        mAuth = FirebaseAuth.getInstance();
+
+
+//        GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, gso);
+//        Intent signInIntent = googleSignInClient.getSignInIntent();
+//        startActivityForResult(signInIntent, RC_SIGN_IN);
+//        // Initialize credentials and service object.
+//        SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
+//        credential = GoogleAccountCredential.usingOAuth2(
+//                        getApplicationContext(), Arrays.asList(SCOPES.toString()))
+//                .setBackOff(new ExponentialBackOff())
+//                .setSelectedAccountName(settings.getString(PREF_ACCOUNT_NAME, null));
+//        Log.d("GoogleCloud", "Credential Generated.");
+//        mService = new com.google.api.services.calendar.Calendar.Builder(
+//                transport, jsonFactory, credential)
+//                .setApplicationName("JarvisAI")
+//                .build();
+//        Log.d("GoogleCloud", "Service Generated.");
 
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -170,13 +269,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        try {
-            google_cal();
-        } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            google_cal();
+//        } catch (GeneralSecurityException e) {
+//            throw new RuntimeException(e);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
 
 
         ImageView linkedImageView = findViewById(R.id.linked);
@@ -283,7 +382,7 @@ public class MainActivity extends AppCompatActivity {
         return drawable.getBitmap();
     }
 
-    private String google_cal() {
+    private String google_cal() throws IOException, GeneralSecurityException {
         // Build a new authorized API client service.
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
         Calendar service =
@@ -313,6 +412,7 @@ public class MainActivity extends AppCompatActivity {
                 return event.getSummary();
             }
         }
+        return null;
     }
 
     private void startSpeechRecognition(){
