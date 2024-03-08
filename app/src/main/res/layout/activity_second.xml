@@ -61,7 +61,7 @@
 
         <!-- Input Field -->
         <EditText
-            android:id="@+id/speech_text"
+            android:id="@+id/speech_text_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
@@ -72,7 +72,7 @@
             android:textSize="16sp" />
 
         <EditText
-            android:id="@+id/notification_text"
+            android:id="@+id/notification_text_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
@@ -84,7 +84,7 @@
 
         <!-- Footer  -->
         <Button
-            android:id="@+id/send_notification"
+            android:id="@+id/send_notification_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#2196F3"
