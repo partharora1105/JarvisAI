@@ -168,7 +168,37 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_ONE_TAP = 2;
     private boolean showOneTapUI = true;
 
+    private void initSignInButton (){
+        SignInButton button = findViewById(R.id.signInButton);
+        // Your code here
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                System.out.println("Clicked");
 
+                // Initiate sign-in process here
+                signInBotTwo();
+                FirebaseUser user = mAuth.getCurrentUser();
+                System.out.println(user.getDisplayName());
+
+            }
+        });
+    }
+
+    private void signInBotTwo() {
+        // Configure Google Sign In
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("137591440076-7sa937qr4tvi3q4tnm3tmobmpil33dkn.apps.googleusercontent.com") // You need to replace this with your client id
+                .requestEmail()
+                .build();
+
+
+
+        GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        Intent signInIntent = mGoogleSignInClient.getSignInIntent();
+        startActivityForResult(signInIntent, REQ_ONE_TAP);
+    }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -212,9 +242,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        System.out.println("hit the create fn");
-        setContentView(R.layout.main_activity);
 
+        setContentView(R.layout.main_activity);
+        initSignInButton();
 
 ////        Working Auth Sys
 //        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
