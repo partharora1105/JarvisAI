@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/secondView"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -20,8 +21,6 @@
             android:src="@drawable/ai_face" />
 
         <!-- Speech Input Button -->
-
-        <!-- Linked Check -->
         <Button
             android:id="@+id/speech_input_button"
             android:layout_width="match_parent"
@@ -34,6 +33,7 @@
             android:textAllCaps="false"
             android:textColor="#FFFFFF" />
 
+        <!-- Linked Check -->
         <LinearLayout
             android:id="@+id/checks_layout"
             android:layout_width="match_parent"
@@ -93,12 +93,5 @@
             android:text="Send to Glasses"
             android:textAllCaps="false"
             android:textColor="#FFFFFF" />
-
-        <Button
-            android:id="@+id/signInButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Sign In" />
-
     </LinearLayout>
 </ScrollView>
