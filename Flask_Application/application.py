@@ -229,11 +229,12 @@ def get_events_calander(voice_input, auth_code):
 
   start_timestamp = datetime(start_year, start_month, start_day, start_time).isoformat()
   end_timestamp = datetime(end_year, end_month, end_day, end_time).isoformat()
+  output = f"Schedule for {start_timestamp}"
+
+  
 
   creds = None
   creds = get_creds_from_auth_code(auth_code)
-  
-  output = f"Schedule for {start_timestamp}"
   try:
       service = build("calendar", "v3", credentials=creds)
       events_result = service.events().list(calendarId='primary', timeMin=start_timestamp, maxResults = 10, singleEvents=True, orderBy='startTime').execute()
@@ -252,10 +253,8 @@ def get_events_calander(voice_input, auth_code):
   except Exception as error:
       
       print(f"An error occurred: {error}")
-      event_list = ["Meeting with Ryan, 11 AM,\n", 
-                    "Lunch with Jamie, 2 PM,\n",
-                    "Take Mira to Tennis, 5:30 PM,\n"]
-      output += "\n".join(event_list)
+      return f"An error occurred: {error}"
+      
   return output
 
 
