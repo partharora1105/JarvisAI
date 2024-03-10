@@ -17,7 +17,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -30,14 +29,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.api.services.calendar.CalendarScopes;
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.GoogleAuthProvider;
 import com.vuzix.ultralite.LVGLImage;
 import com.vuzix.ultralite.UltraliteSDK;
 
@@ -78,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
     GoogleSignInClient mGoogleSignInClient;
 
-    String authCode;
+    String authCode = "your_dad";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -186,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button speechInputButton = findViewById(R.id.speech_input_button);
+        Button speechInputButton = findViewById(R.id.speech_input_button_2);
         speechInputButton.setOnClickListener(v -> {
             // Start speech recognition
             startSpeechRecognition();
@@ -231,8 +225,8 @@ public class MainActivity extends AppCompatActivity {
             // add your code here to call the endpoint
 
             // Since sign-in was successful, proceed to the next activity
-            Intent intent = new Intent(MainActivity.this, SecondActivity.class);
-            startActivity(intent);
+//            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+//            startActivity(intent);
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
             Log.e("SIGN_IN_ERROR", "signInResult:failed code=" + e.getStatusCode());
@@ -251,8 +245,11 @@ public class MainActivity extends AppCompatActivity {
                 // Encode voice input to ensure it's safe for URL inclusion
                 String encodedVoiceInput = URLEncoder.encode(voiceInput, StandardCharsets.UTF_8.toString());
 
+                Log.d("AUTH_CODE", "Auth code before endpoint is: " + authCode);
+
                 // Construct the URL
                 String urlString = String.format("https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/%s/%s", authCode, encodedVoiceInput);
+                Log.d("URL", "URL is: " + urlString);
                 URL url = new URL(urlString);
 
                 // Open connection
