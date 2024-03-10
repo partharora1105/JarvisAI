@@ -221,15 +221,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void analyzeSpeech(String voice_input) {
         speechText.setText(voice_input);
-
         if (voice_input.toLowerCase().contains(trigger.toLowerCase())){
-            googleSignIn();
             String availability = getResponse(authCode, voice_input);
             sendToGlasses(availability);
         }
     }
 
     private String getResponse(String authCode, String voiceInput) {
+        googleSignIn();
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<String> future = executor.submit(() -> {
             try {
