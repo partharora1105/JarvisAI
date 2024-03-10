@@ -26,7 +26,7 @@ publicPath = "/home/ccghwd/mysite/"
 PATH = localPath
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
-open_ai_key ="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" # remember to use key
+open_ai_key ="secret_key" # remember to use key
 credentials_path = PATH + "static/credential.json"
 token_path = PATH + "static/token.json"
 
@@ -39,16 +39,16 @@ def hello_world():
 
 @app.route("/everyday/wear/rest/api/speech/output/<auth_code>/<voice_input>")
 def basic_command(auth_code, voice_input):
-    t = calander()
+    t = calander(voice_input, auth_code)
     return f"Anv passed {voice_input} with code {auth_code}"
 
 
-def calander():
+def calander(voice_input, auth_code):
   client = OpenAI(
     api_key=open_ai_key
   )
 
-  mic_record = "Lets meet on next tuesday between 12 to 1 pm"
+  mic_record = voice_input
 
   now = datetime.now()
   curr_details = now.strftime("%H:%M:%S %Y-%m-%d %A")
@@ -140,8 +140,7 @@ def calander():
     # created automatically when the authorization flow completes for the first
     # time.
 
-  creds = "" #Credentials.from_authorized_user_file(token_path, SCOPES)
-  # If there are no (valid) credentials available, let the user log in.
+  creds = "" get_creds_from_auth_code(auth_code) 
   if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
       creds.refresh(Request())
@@ -175,6 +174,11 @@ def calander():
     print ('Event created: %s' % (event.get('htmlLink')))
   except HttpError as error:
     print(f"An error occurred: {error}")
+    
+def get_creds_from_auth_code():
+  creds = ""
+  #your code here
+  return creds
 
 if DOMAIN != publicDomain:
     if __name__ == '__main__':
