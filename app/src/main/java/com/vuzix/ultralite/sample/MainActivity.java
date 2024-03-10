@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -28,8 +29,10 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.api.services.calendar.CalendarScopes;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -85,8 +88,11 @@ public class MainActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("137591440076-7sa937qr4tvi3q4tnm3tmobmpil33dkn.apps.googleusercontent.com")
-                .requestEmail().build();
+                .requestEmail()
+                .requestScopes(new Scope(CalendarScopes.CALENDAR_EVENTS))
+                .requestServerAuthCode("137591440076-a250qqhgi5t2ggtme5mvi2ir7cs3e2ct.apps.googleusercontent.com", false) // Replace YOUR_SERVER_CLIENT_ID
+                .build();
+
 
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
@@ -105,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, PERMISSION_REQUEST_INTERNET);
         }
 
-        setContentView(R.layout.activity_second);
 
 
         ImageView linkedImageView = findViewById(R.id.linked);
@@ -205,38 +210,37 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == RC_SIGN_IN){
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-            try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                firebaseAuth(account.getIdToken());
 
-            }
-            catch (Exception e) {
-                Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-                System.out.println(e.getMessage());
-            }
+            handleSignInResult(task);
         }
     }
 
-    private void firebaseAuth(String idToken) {
-        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
-        auth.signInWithCredential(credential)
-                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()){
-                            FirebaseUser user = auth.getCurrentUser();
+    private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
+        try {
+            GoogleSignInAccount account = completedTask.getResult(ApiException.class);
 
-                            Intent intent = new Intent(MainActivity.this, SecondActivity.class);
-                            startActivity(intent);
+            // Get the authorization code to verify it's not null
+            String authCode = account.getServerAuthCode();
 
-                            System.out.println(user.getEmail());
-                        }
-                        else {
-                            Toast.makeText(MainActivity.this, "sign in failed", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+            // For debugging purposes, log the auth code
+            Log.d("AUTH_CODE", "Auth code is: " + authCode);
+
+            // Now you can use this auth code to exchange for an access token on your server
+
+            // Since sign-in was successful, proceed to the next activity
+            Intent intent = new Intent(MainActivity.this, SecondActivity.class);
+            startActivity(intent);
+        } catch (ApiException e) {
+            // The ApiException status code indicates the detailed failure reason.
+            Log.e("SIGN_IN_ERROR", "signInResult:failed code=" + e.getStatusCode());
+
+            // Inform the user that sign-in failed
+            Toast.makeText(MainActivity.this, "Sign in failed. Please try again.", Toast.LENGTH_LONG).show();
+
+            // Optionally, reset any sign-in UI elements or provide options to retry sign-in
+        }
     }
+
 
     private static LVGLImage loadLVGLImage(Context context, int resource) {
         return LVGLImage.fromBitmap(loadBitmap(context, resource), LVGLImage.CF_INDEXED_1_BIT);
