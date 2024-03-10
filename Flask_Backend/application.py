@@ -13,6 +13,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from flask import Flask, jsonify
+from google.oauth2 import service_account
+import googleapiclient.discovery
+
 
 
 
@@ -22,16 +26,16 @@ publicDomain = "https://ccghwd.pythonanywhere.com/"
 DOMAIN = localDomain
 
 localPath = ""
-publicPath = "/home/ccghwd/mysite/"
+publicPath = "/home/ccgHwd/mysite/"
 PATH = localPath
 
 SCOPES = [
-    "https://www.googleapis.com/auth/calendar.vents",
+    "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
     "openid"
 ]
-open_ai_key ="secret_key" # remember to use key
+open_ai_key ="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" # remember to use key
 credentials_path = PATH + "static/credential.json"
 token_path = PATH + "static/token.json"
 
@@ -42,10 +46,17 @@ def hello_world():
     return 'Hello from Thad!'
 
 
-@app.route("/everyday/wear/rest/api/speech/output/<auth_code>/<voice_input>")
-def basic_command(auth_code, voice_input):
-    t = calander(voice_input, auth_code)
-    return f"Anv passed {voice_input} with code {auth_code}"
+#"https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/<temp>/<auth_code>/<voice_input>"
+@app.route("/everyday/wear/rest/api/speech/output/<temp>/<auth_code>/<voice_input>")
+def basic_command(temp, auth_code, voice_input):
+    if "schedule" in voice_input.lower() :
+      auth_code = f"{temp}/{auth_code}"
+      print(auth_code)
+      output = calander(voice_input, auth_code)
+    else:
+       output = "no sched"
+    return output
+    #return output # f"Anv passed {voice_input} with code {auth_code}"
 
 
 def calander(voice_input, auth_code):
@@ -145,7 +156,9 @@ def calander(voice_input, auth_code):
     # created automatically when the authorization flow completes for the first
     # time.
 
-  creds = get_creds_from_auth_code(auth_code) 
+  print("a")
+  creds = get_creds_from_auth_code(auth_code)
+  print("b")
   # if not creds or not creds.valid:
   #   if creds and creds.expired and creds.refresh_token:
   #     creds.refresh(Request())
@@ -176,10 +189,15 @@ def calander(voice_input, auth_code):
       ],
       }
     event = service.events().insert(calendarId='primary', body=event).execute()
-    print ('Event created: %s' % (event.get('htmlLink')))
+    event = f"Event : {data['name']},\n When : {start_timestamp},\n"
+
+    print (event)
+    return event
   except HttpError as error:
     print(f"An error occurred: {error}")
-    
+    return f"An error occurred: {error}"
+
+
 def get_creds_from_auth_code(auth_code):
   flow = Flow.from_client_secrets_file(
         credentials_path,
@@ -193,6 +211,7 @@ def get_creds_from_auth_code(auth_code):
 
   credentials = flow.credentials
   return credentials
+
 
 if DOMAIN != publicDomain:
     if __name__ == '__main__':

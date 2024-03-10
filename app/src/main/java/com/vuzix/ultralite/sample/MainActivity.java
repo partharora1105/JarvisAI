@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -62,45 +63,37 @@ public class MainActivity extends AppCompatActivity {
     private EditText speechText;
     private EditText notificationEditText;
     private SpeechRecognizer speechRecognizer;
-    private static final String OpenAiToken = "" ;
 
     int RC_SIGN_IN = 20;
 
-    Button gAuth;
-
+    Boolean isListening = Boolean.FALSE;
     FirebaseAuth auth;
-
     GoogleSignInClient mGoogleSignInClient;
 
-    String authCode = "your_dad";
+    String authCode = "default_code";
+    String trigger = "Jarvis";
+
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.main_activity);
-
-        gAuth = findViewById(R.id.signInButton);
-
         auth = FirebaseAuth.getInstance();
-
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .requestScopes(new Scope(CalendarScopes.CALENDAR_EVENTS))
                 .requestServerAuthCode("137591440076-a250qqhgi5t2ggtme5mvi2ir7cs3e2ct.apps.googleusercontent.com", false) // Replace YOUR_SERVER_CLIENT_ID
                 .build();
 
-
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
-        gAuth.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                googleSignIn();
-            }
-        });
-
-
+        googleSignIn();
+//        gAuth.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                googleSignIn();
+//            }
+//        });
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSION_REQUEST_RECORD_AUDIO);
         }
@@ -109,9 +102,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-
         ImageView linkedImageView = findViewById(R.id.linked);
-        Button notificationButton = findViewById(R.id.send_notification_2);
+
         notificationEditText = findViewById(R.id.notification_text_2);
         speechText = findViewById(R.id.speech_text_2);
 
@@ -126,36 +118,24 @@ public class MainActivity extends AppCompatActivity {
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
         speechRecognizer.setRecognitionListener(new RecognitionListener() {
             @Override
-            public void onReadyForSpeech(Bundle params) {
-                // Not used
-            }
-
+            public void onReadyForSpeech(Bundle params) {}
             @Override
-            public void onBeginningOfSpeech() {
-                // Not used
-            }
-
+            public void onBeginningOfSpeech() {}
             @Override
-            public void onRmsChanged(float rmsdB) {
-                // Not used
-            }
-
+            public void onRmsChanged(float rmsdB) {}
             @Override
-            public void onBufferReceived(byte[] buffer) {
-                // Not used
-            }
-
+            public void onBufferReceived(byte[] buffer) {}
             @Override
-            public void onEndOfSpeech() {
-                // Not used
-            }
-
+            public void onEndOfSpeech() {}
             @Override
             public void onError(int error) {
-                // Handle speech recognition error
-                Toast.makeText(MainActivity.this, "Speech recognition error: " + error, Toast.LENGTH_SHORT).show();
+                if (isListening){
+                    startSpeechRecognition();
+                    Toast.makeText(MainActivity.this, "Speech recognition error: " + error, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "Stopping Speech Recognition", Toast.LENGTH_SHORT).show();
+                }
             }
-
             @Override
             public void onResults(Bundle results) {
                 ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -170,29 +150,24 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onPartialResults(Bundle partialResults) {
-                // Not used
-            }
+            public void onPartialResults(Bundle partialResults) {}
 
             @Override
-            public void onEvent(int eventType, Bundle params) {
-                // Not used
-            }
+            public void onEvent(int eventType, Bundle params) {}
         });
 
-        Button speechInputButton = findViewById(R.id.speech_input_button_2);
+        Button speechInputButton = findViewById(R.id.speech_input_button_start);
         speechInputButton.setOnClickListener(v -> {
-            // Start speech recognition
             startSpeechRecognition();
+            isListening = true;
         });
 
 
-        notificationButton.setOnClickListener(v -> {
-            String notificationText = notificationEditText.getText().toString();
-            ultralite.sendNotification("Jarvis", notificationText,
-                    loadLVGLImage(this, R.drawable.rocket));
+        Button stopSpeechInputButton = findViewById(R.id.speech_input_button_end);
+        stopSpeechInputButton.setOnClickListener(v -> {
+            isListening = false;
+            stopSpeechRecognition();
         });
-
 
     }
 
@@ -204,10 +179,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == RC_SIGN_IN){
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-
             handleSignInResult(task);
         }
     }
@@ -215,65 +188,65 @@ public class MainActivity extends AppCompatActivity {
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-
-            // Get the authorization code to verify it's not null
             authCode = account.getServerAuthCode();
-
-            // For debugging purposes, log the auth code
+            Toast.makeText(MainActivity.this, "Signed into Google", Toast.LENGTH_SHORT).show();
             Log.d("AUTH_CODE", "Auth code is: " + authCode);
-
-            // add your code here to call the endpoint
-
-            // Since sign-in was successful, proceed to the next activity
-//            Intent intent = new Intent(MainActivity.this, MainActivity.class);
-//            startActivity(intent);
         } catch (ApiException e) {
-            // The ApiException status code indicates the detailed failure reason.
             Log.e("SIGN_IN_ERROR", "signInResult:failed code=" + e.getStatusCode());
-
-            // Inform the user that sign-in failed
             Toast.makeText(MainActivity.this, "Sign in failed. Please try again.", Toast.LENGTH_LONG).show();
-
-            // Optionally, reset any sign-in UI elements or provide options to retry sign-in
         }
     }
 
-    private String sendToServerWithAuthCodeAndVoiceInput(String authCode, String voiceInput) {
+    private void startSpeechRecognition(){
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager != null) {
+            audioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0);
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, AudioManager.ADJUST_MUTE, 0);
+            audioManager.setStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0);
+            audioManager.setStreamVolume(AudioManager.STREAM_SYSTEM, AudioManager.ADJUST_MUTE, 0);
+        }
+        // Create speech recognition intent
+        Intent speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        speechIntent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...");
+        // Start speech recognition
+        speechRecognizer.startListening(speechIntent);
+    }
+
+    private void stopSpeechRecognition(){
+        speechRecognizer.stopListening();
+    }
+
+    private void analyzeSpeech(String voice_input) {
+        speechText.setText(voice_input);
+
+        if (voice_input.toLowerCase().contains(trigger.toLowerCase())){
+            String availability = getResponse(authCode, voice_input);
+            sendToGlasses(availability);
+        }
+    }
+
+    private String getResponse(String authCode, String voiceInput) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<String> future = executor.submit(() -> {
             try {
-                // Encode voice input to ensure it's safe for URL inclusion
                 String encodedVoiceInput = URLEncoder.encode(voiceInput, StandardCharsets.UTF_8.toString());
-
                 Log.d("AUTH_CODE", "Auth code before endpoint is: " + authCode);
-
-                // Construct the URL
                 String urlString = String.format("https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/%s/%s", authCode, encodedVoiceInput);
                 Log.d("URL", "URL is: " + urlString);
                 URL url = new URL(urlString);
-
-                // Open connection
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-                // Set request method
                 con.setRequestMethod("GET");
-
-                // Set request headers, if needed (for example, if you require a User-Agent)
-                // con.setRequestProperty("User-Agent", "Mozilla/5.0");
-
-                // Get the response code to check for successful request
                 int responseCode = con.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) { // success
                     BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
                     String inputLine;
                     StringBuffer response = new StringBuffer();
-
                     while ((inputLine = in.readLine()) != null) {
                         response.append(inputLine);
                     }
                     in.close();
-
-                    // Print result for debugging
                     System.out.println(response.toString());
                     return response.toString();
                 } else {
@@ -284,11 +257,8 @@ public class MainActivity extends AppCompatActivity {
             }
             return null;
         });
-
         try {
-            // Get the result of the future here, which will block until the callable has returned.
             String result = future.get();
-            // Handle the result as needed
             Log.d("HTTP_GET_RESULT", "Result from server: " + result);
             return result;
         } catch (Exception e) {
@@ -300,6 +270,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void sendToGlasses(String content) {
+        UltraliteSDK ultralite = UltraliteSDK.get(this);
+        notificationEditText.setText(content);
+        String notificationText = notificationEditText.getText().toString();
+        ultralite.sendNotification("Jarvis", notificationText,
+                loadLVGLImage(this, R.drawable.rocket));
+    }
 
     private static LVGLImage loadLVGLImage(Context context, int resource) {
         return LVGLImage.fromBitmap(loadBitmap(context, resource), LVGLImage.CF_INDEXED_1_BIT);
@@ -312,145 +289,6 @@ public class MainActivity extends AppCompatActivity {
         return drawable.getBitmap();
     }
 
-    private void startSpeechRecognition(){
-        // Create speech recognition intent
-        Intent speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        speechIntent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now...");
-        // Start speech recognition
-        speechRecognizer.startListening(speechIntent);
-    }
-
-
-    private void analyzeSpeech(String voice_input) {
-        speechText.setText(voice_input);
-        if (voice_input.toLowerCase().contains("schedule")){
-            pull_schedule(voice_input);
-        }
-        if (voice_input.toLowerCase().contains("jarvis")){
-            askQuestion(voice_input);
-        }
-    }
-    private void askQuestion(String voice_input) {
-        String query = voice_input + "(Answer in less than 20 words)";
-        String output = queryGpt(query);
-        sendToGlasses(output);
-    }
-    private void pull_schedule(String voice_input) {
-        String availability = sendToServerWithAuthCodeAndVoiceInput(authCode, voice_input);
-        sendToGlasses(availability);
-    }
-
-    public static String getCurrentDateTimeFormatted() {
-        // Get the current date and time
-        LocalDateTime now = LocalDateTime.now();
-
-        // Define the format
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, yyyy-MM-dd HH:mm:ss");
-
-        // Format and return the current date and time
-        return now.format(formatter);
-    }
-
-    private String queryGpt(String query) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<String> future = executor.submit(new PostTask(query));
-        try {
-            String result = future.get(); // This will block until the task is completed
-            JSONObject responseJson = new JSONObject(result);
-            JSONArray choices = responseJson.getJSONArray("choices");
-            if (choices.length() > 0) {
-                JSONObject choice = choices.getJSONObject(0);
-                JSONObject message = choice.getJSONObject("message");
-                return message.getString("content");
-
-            } else {
-                return "NA";
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            executor.shutdown();
-        }
-        return "NA";
-    }
-
-    private String getAvailability(String date) throws GeneralSecurityException, IOException {
-        return "Monday 2-3pm";
-    }
-
-    private void sendToGlasses(String content) {
-        UltraliteSDK ultralite = UltraliteSDK.get(this);
-        notificationEditText.setText(content);
-        String notificationText = notificationEditText.getText().toString();
-        ultralite.sendNotification("Jarvis",  notificationText,
-                loadLVGLImage(this, R.drawable.rocket));
-    }
-
-    private static class PostTask implements Callable<String> {
-        private final String query;
-        public PostTask(String query) {
-            this.query = query;
-        }
-
-        @Override
-        public String call() throws Exception {
-            String response = "";
-            try {
-                // URL and parameters
-                String url = "https://api.openai.com/v1/chat/completions";
-                String bearerToken = OpenAiToken;
-
-                // Create JSON payload
-                JSONObject requestBody = new JSONObject();
-                requestBody.put("model", "gpt-3.5-turbo-1106");
-
-                JSONArray messagesArray = new JSONArray();
-                JSONObject messageObject = new JSONObject();
-                messageObject.put("role", "user");
-                messageObject.put("content", query);
-                messagesArray.put(messageObject);
-
-                requestBody.put("messages", messagesArray);
-
-                // Create connection
-                URL obj = new URL(url);
-                HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-
-                // Set request method
-                con.setRequestMethod("POST");
-
-                // Set request headers
-                con.setRequestProperty("Content-Type", "application/json");
-                con.setRequestProperty("Authorization", "Bearer " + bearerToken);
-
-                // Enable input and output streams
-                con.setDoOutput(true);
-                con.setDoInput(true);
-
-                // Send POST request
-                try (DataOutputStream wr = new DataOutputStream(con.getOutputStream())) {
-                    byte[] postData = requestBody.toString().getBytes(StandardCharsets.UTF_8);
-                    wr.write(postData);
-                }
-
-                // Get response
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-                    String inputLine;
-                    StringBuilder responseBuffer = new StringBuilder();
-                    while ((inputLine = in.readLine()) != null) {
-                        responseBuffer.append(inputLine);
-                    }
-                    response = responseBuffer.toString();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            return response;
-        }
-    }
 }
 
 
