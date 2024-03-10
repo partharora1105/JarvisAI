@@ -28,6 +28,8 @@ render.experimental.xml
 
 # Google Services (e.g. APIs or Firebase)
 
+.DS_Store
+
 # Android Profiling
 *.hprof
 .vscode/settings.json
