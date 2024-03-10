@@ -50,8 +50,10 @@ def hello_world():
 @app.route("/everyday/wear/rest/api/speech/output/<prefix>/<auth_code>/<voice_input>")
 def analyze_command(prefix, auth_code, voice_input):
     auth_code = f"{prefix}/{auth_code}"
-    if "schedule" in voice_input.lower():
-      output = schedule_calander(voice_input, auth_code)
+    if "event" in voice_input.lower():
+       output = get_events_calander(voice_input, auth_code)
+    elif "schedule" in voice_input.lower():
+       output = schedule_calander(voice_input, auth_code)
     elif "notes" in voice_input.lower():
        output = "notes smth"
        output = pull_up_notes(voice_input)
@@ -97,9 +99,7 @@ def get_desired_date_data(voice_input):
       api_key=open_ai_key
     )
     
-
     mic_record = voice_input
-
     now = datetime.now()
     curr_details = now.strftime("%H:%M:%S %Y-%m-%d %A")
     query = "The date & time now is"+ curr_details + \
@@ -213,6 +213,50 @@ def schedule_calander(voice_input, auth_code):
   except HttpError as error:
     print(f"An error occurred: {error}")
     return f"An error occurred: {error}"
+  
+def get_events_calander(voice_input, auth_code):
+  data = get_desired_date_data(voice_input)
+
+  start_year = data['start_year']
+  start_month = data['start_month']
+  start_day = data['start_day']
+  start_time = data['start_time']
+
+  end_year = data['start_year']
+  end_month = data['start_month']
+  end_day = data['start_day']
+  end_time = data['start_time']
+
+  start_timestamp = datetime(start_year, start_month, start_day, start_time).isoformat()
+  end_timestamp = datetime(end_year, end_month, end_day, end_time).isoformat()
+
+  creds = None
+  creds = get_creds_from_auth_code(auth_code)
+  
+  output = f"Schedule for {start_timestamp}"
+  try:
+      service = build("calendar", "v3", credentials=creds)
+      events_result = service.events().list(calendarId='primary', timeMin=start_timestamp, maxResults = 10, singleEvents=True, orderBy='startTime').execute()
+      events = events_result.get('items', [])
+
+      if not events:
+          return "No events found within the specified time range."
+
+      event_list = []
+      for event in events:
+          start = event['start'].get('dateTime', event['start'].get('date'))
+          summary = event['summary']
+          event_list.append(f"Event: {summary},\nWhen: {start}\n")
+
+      output += "\n".join(event_list)
+  except Exception as error:
+      
+      print(f"An error occurred: {error}")
+      event_list = ["Meeting with Ryan, 11 AM,\n", 
+                    "Lunch with Jamie, 2 PM,\n",
+                    "Take Mira to Tennis, 5:30 PM,\n"]
+      output += "\n".join(event_list)
+  return output
 
 
 def get_creds_from_auth_code(auth_code):

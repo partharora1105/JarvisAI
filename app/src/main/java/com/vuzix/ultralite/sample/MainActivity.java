@@ -132,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
             public void onError(int error) {
                 if (isListening){
                     startSpeechRecognition();
-                    Toast.makeText(MainActivity.this, "Speech recognition error: " + error, Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(MainActivity.this, "Speech recognition error: " + error, Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(MainActivity.this, "Stopping Speech Recognition", Toast.LENGTH_SHORT).show();
                 }
@@ -223,6 +223,7 @@ public class MainActivity extends AppCompatActivity {
         speechText.setText(voice_input);
 
         if (voice_input.toLowerCase().contains(trigger.toLowerCase())){
+            googleSignIn();
             String availability = getResponse(authCode, voice_input);
             sendToGlasses(availability);
         }
