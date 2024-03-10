@@ -51,7 +51,7 @@ def hello_world():
 def analyze_command(prefix, auth_code, voice_input):
     auth_code = f"{prefix}/{auth_code}"
     if "schedule" in voice_input.lower():
-      output = calander(voice_input, auth_code)
+      output = schedule_calander(voice_input, auth_code)
     elif "notes" in voice_input.lower():
        output = "notes smth"
        output = pull_up_notes(voice_input)
@@ -92,84 +92,88 @@ def pull_up_notes(voice_input):
   ) 
   return completion.choices[0].message.content  
 
-def calander(voice_input, auth_code):
-  client = OpenAI(
-    api_key=open_ai_key
-  )
-  
+def get_desired_date_data(voice_input):
+    client = OpenAI(
+      api_key=open_ai_key
+    )
+    
 
-  mic_record = voice_input
+    mic_record = voice_input
 
-  now = datetime.now()
-  curr_details = now.strftime("%H:%M:%S %Y-%m-%d %A")
-  query = "The date & time now is"+ curr_details + \
-      "and the transcripted voice recording is: "+ mic_record + \
-      "Based on the current date & time as well as the transcripted voice recording, fill in the JSON format specified" \
-      "Return the JSON format specified, do not return anything else."
+    now = datetime.now()
+    curr_details = now.strftime("%H:%M:%S %Y-%m-%d %A")
+    query = "The date & time now is"+ curr_details + \
+        "and the transcripted voice recording is: "+ mic_record + \
+        "Based on the current date & time as well as the transcripted voice recording, fill in the JSON format specified" \
+        "Return the JSON format specified, do not return anything else."
 
-  functions = [
-    {
-      "name": "add_event",
-      "description": "Adds a new event to the calendar",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "name of the event"
+    functions = [
+      {
+        "name": "add_event",
+        "description": "Adds a new event to the calendar",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "name of the event"
+            },
+            "event_description": {
+              "type": "string",
+              "description": "The description of the event"
+            },
+            "start_year": {
+              "type": "integer",
+              "description": "The year in which the event starts"
+            },
+            "end_year": {
+              "type": "integer",
+              "description": "The year in which the event ends"
+            },
+            "start_month": {
+              "type": "integer",
+              "description": "The month in which the event start"
+            },
+            "end_month": {
+              "type": "integer",
+              "description": "The month in which the event ends"
+            },
+            "start_day": {
+              "type": "integer",
+              "description": "The day in which the event starts"
+            },
+            "end_day": {
+              "type": "integer",
+              "description": "The day in which the event ends"
+            },
+            "start_time": {
+              "type": "integer",
+              "description": "The start time in 24hr format"
+            },
+            "end_time": {
+              "type": "integer",
+              "description": "The end time in 24hr format. If no time is specified, the end time should be one hour after the start"
+            }
           },
-          "event_description": {
-            "type": "string",
-            "description": "The description of the event"
-          },
-          "start_year": {
-            "type": "integer",
-            "description": "The year in which the event starts"
-          },
-          "end_year": {
-            "type": "integer",
-            "description": "The year in which the event ends"
-          },
-          "start_month": {
-            "type": "integer",
-            "description": "The month in which the event start"
-          },
-          "end_month": {
-            "type": "integer",
-            "description": "The month in which the event ends"
-          },
-          "start_day": {
-            "type": "integer",
-            "description": "The day in which the event starts"
-          },
-          "end_day": {
-            "type": "integer",
-            "description": "The day in which the event ends"
-          },
-          "start_time": {
-            "type": "integer",
-            "description": "The start time in 24hr format"
-          },
-          "end_time": {
-            "type": "integer",
-            "description": "The end time in 24hr format. If no time is specified, the end time should be one hour after the start"
-          }
-        },
-        "required": ["name", "event_description", "start_year", "start_month", "start_day", "start_time", "end_year", "end_month", "end_day", "end_time"]
-      }
-    },
-  ]
+          "required": ["name", "event_description", "start_year", "start_month", "start_day", "start_time", "end_year", "end_month", "end_day", "end_time"]
+        }
+      },
+    ]
 
-  completion = client.chat.completions.create(
-    model="gpt-3.5-turbo-0613",
-    messages=[
-      {"role": "user", "content": query}
-      ],
-    functions=functions,
-    stream=False,
-  )
+    completion = client.chat.completions.create(
+      model="gpt-3.5-turbo-0613",
+      messages=[
+        {"role": "user", "content": query}
+        ],
+      functions=functions,
+      stream=False,
+    )
 
-  data = json.loads(completion.choices[0].message.function_call.arguments)
+    data = json.loads(completion.choices[0].message.function_call.arguments)
+    return data
+
+def schedule_calander(voice_input, auth_code):
+  data = get_desired_date_data(voice_input)
 
   start_year = data['start_year']
   start_month = data['start_month']
@@ -182,29 +186,10 @@ def calander(voice_input, auth_code):
   end_time = data['start_time']
 
   start_timestamp = datetime(start_year, start_month, start_day, start_time).isoformat()
-
   end_timestamp = datetime(end_year, end_month, end_day, end_time).isoformat()
 
   creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-
-  print("a")
   creds = get_creds_from_auth_code(auth_code)
-  print("b")
-  # if not creds or not creds.valid:
-  #   if creds and creds.expired and creds.refresh_token:
-  #     creds.refresh(Request())
-  #   else:
-  #     flow = InstalledAppFlow.from_client_secrets_file(
-  #         credentials_path, SCOPES
-  #     )
-  #     creds = flow.run_local_server(port=57890)
-    # Save the credentials for the next run
-    # with open("token.json", "w") as token:
-    #   token.write(creds.to_json())
-
   try:
     service = build("calendar", "v3", credentials=creds)
     event = {
@@ -223,11 +208,7 @@ def calander(voice_input, auth_code):
       ],
       }
     event = service.events().insert(calendarId='primary', body=event).execute()
-    event_date = datetime.strftime('%B %d, %Y')  
-    event_time = datetime.strftime('%I:%M %p')  
-    event = f"Event : {data['name']},\n When : {event_date} at {event_time},\n"
-
-    print (event)
+    event = f"Event : {data['name']},\n When : {start_timestamp},\n"
     return event
   except HttpError as error:
     print(f"An error occurred: {error}")
@@ -240,13 +221,11 @@ def get_creds_from_auth_code(auth_code):
         scopes=SCOPES,
         redirect_uri='urn:ietf:wg:oauth:2.0:oob'  # This redirect URI is used for apps that do not have a web server
   )
-
-  # Exchange the authorization code for a credentials object
-  # You need to ensure that this auth_code is the one you got from the front end
   flow.fetch_token(code=auth_code)
-
   credentials = flow.credentials
   return credentials
+
+
 
 
 if DOMAIN != publicDomain:

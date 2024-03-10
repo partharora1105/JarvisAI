@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
     GoogleSignInClient mGoogleSignInClient;
 
     String authCode = "default_code";
+    String host_url = "https://ccghwd.pythonanywhere.com";
     String trigger = "Jarvis";
 
 
@@ -233,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String encodedVoiceInput = URLEncoder.encode(voiceInput, StandardCharsets.UTF_8.toString());
                 Log.d("AUTH_CODE", "Auth code before endpoint is: " + authCode);
-                String urlString = String.format("https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/%s/%s", authCode, encodedVoiceInput);
+                String urlString = String.format("%s/everyday/wear/rest/api/speech/output/%s/%s", host_url, authCode, encodedVoiceInput);
                 Log.d("URL", "URL is: " + urlString);
                 URL url = new URL(urlString);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
