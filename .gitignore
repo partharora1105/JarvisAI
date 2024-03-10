@@ -33,4 +33,3 @@ app/google-services.json
 *.hprof
 .vscode/settings.json
 new_res/new_credential.json
-*.json
