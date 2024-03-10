@@ -9,7 +9,7 @@ from openai import OpenAI
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -25,7 +25,12 @@ localPath = ""
 publicPath = "/home/ccghwd/mysite/"
 PATH = localPath
 
-SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar.vents",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "openid"
+]
 open_ai_key ="secret_key" # remember to use key
 credentials_path = PATH + "static/credential.json"
 token_path = PATH + "static/token.json"
@@ -140,18 +145,18 @@ def calander(voice_input, auth_code):
     # created automatically when the authorization flow completes for the first
     # time.
 
-  creds = "" get_creds_from_auth_code(auth_code) 
-  if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
-      flow = InstalledAppFlow.from_client_secrets_file(
-          credentials_path, SCOPES
-      )
-      creds = flow.run_local_server(port=57890)
+  creds = get_creds_from_auth_code(auth_code) 
+  # if not creds or not creds.valid:
+  #   if creds and creds.expired and creds.refresh_token:
+  #     creds.refresh(Request())
+  #   else:
+  #     flow = InstalledAppFlow.from_client_secrets_file(
+  #         credentials_path, SCOPES
+  #     )
+  #     creds = flow.run_local_server(port=57890)
     # Save the credentials for the next run
-    with open("token.json", "w") as token:
-      token.write(creds.to_json())
+    # with open("token.json", "w") as token:
+    #   token.write(creds.to_json())
 
   try:
     service = build("calendar", "v3", credentials=creds)
@@ -175,10 +180,19 @@ def calander(voice_input, auth_code):
   except HttpError as error:
     print(f"An error occurred: {error}")
     
-def get_creds_from_auth_code():
-  creds = ""
-  #your code here
-  return creds
+def get_creds_from_auth_code(auth_code):
+  flow = Flow.from_client_secrets_file(
+        credentials_path,
+        scopes=SCOPES,
+        redirect_uri='urn:ietf:wg:oauth:2.0:oob'  # This redirect URI is used for apps that do not have a web server
+  )
+
+  # Exchange the authorization code for a credentials object
+  # You need to ensure that this auth_code is the one you got from the front end
+  flow.fetch_token(code=auth_code)
+
+  credentials = flow.credentials
+  return credentials
 
 if DOMAIN != publicDomain:
     if __name__ == '__main__':
