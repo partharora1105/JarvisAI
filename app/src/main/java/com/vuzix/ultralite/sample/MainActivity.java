@@ -50,6 +50,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
@@ -76,6 +77,8 @@ public class MainActivity extends AppCompatActivity {
     FirebaseAuth auth;
 
     GoogleSignInClient mGoogleSignInClient;
+
+    String authCode;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -220,12 +223,12 @@ public class MainActivity extends AppCompatActivity {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
 
             // Get the authorization code to verify it's not null
-            String authCode = account.getServerAuthCode();
+            authCode = account.getServerAuthCode();
 
             // For debugging purposes, log the auth code
             Log.d("AUTH_CODE", "Auth code is: " + authCode);
 
-            // Now you can use this auth code to exchange for an access token on your server
+            // add your code here to call the endpoint
 
             // Since sign-in was successful, proceed to the next activity
             Intent intent = new Intent(MainActivity.this, SecondActivity.class);
@@ -240,6 +243,65 @@ public class MainActivity extends AppCompatActivity {
             // Optionally, reset any sign-in UI elements or provide options to retry sign-in
         }
     }
+
+    private String sendToServerWithAuthCodeAndVoiceInput(String authCode, String voiceInput) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<String> future = executor.submit(() -> {
+            try {
+                // Encode voice input to ensure it's safe for URL inclusion
+                String encodedVoiceInput = URLEncoder.encode(voiceInput, StandardCharsets.UTF_8.toString());
+
+                // Construct the URL
+                String urlString = String.format("https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/%s/%s", authCode, encodedVoiceInput);
+                URL url = new URL(urlString);
+
+                // Open connection
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                // Set request method
+                con.setRequestMethod("GET");
+
+                // Set request headers, if needed (for example, if you require a User-Agent)
+                // con.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+                // Get the response code to check for successful request
+                int responseCode = con.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuffer response = new StringBuffer();
+
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+
+                    // Print result for debugging
+                    System.out.println(response.toString());
+                    return response.toString();
+                } else {
+                    System.out.println("GET request not worked");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        });
+
+        try {
+            // Get the result of the future here, which will block until the callable has returned.
+            String result = future.get();
+            // Handle the result as needed
+            Log.d("HTTP_GET_RESULT", "Result from server: " + result);
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Something went wrong";
+        } finally {
+            executor.shutdown();
+        }
+    }
+
 
 
     private static LVGLImage loadLVGLImage(Context context, int resource) {
@@ -279,16 +341,7 @@ public class MainActivity extends AppCompatActivity {
         sendToGlasses(output);
     }
     private void pull_schedule(String voice_input) {
-        String query =  "The current day, date & time is: " + getCurrentDateTimeFormatted() +
-                "return date in only YYYY-MM-DD format (don't return anything" +
-                "else) : " + voice_input;
-        String date= queryGpt(query);
-        String availability = "Error getting availability";
-        try {
-            availability = getAvailability(date);
-        } catch (GeneralSecurityException | IOException e) {
-            throw new RuntimeException(e);
-        }
+        String availability = sendToServerWithAuthCodeAndVoiceInput(authCode, voice_input);
         sendToGlasses(availability);
     }
 
