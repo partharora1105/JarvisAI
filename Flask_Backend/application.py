@@ -35,7 +35,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/userinfo.profile",
     "openid"
 ]
-open_ai_key ="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" # remember to use key
+open_ai_key ="" # remember to use key
 credentials_path = PATH + "static/credential.json"
 token_path = PATH + "static/token.json"
 
@@ -46,23 +46,57 @@ def hello_world():
     return 'Hello from Thad!'
 
 
-#"https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/<temp>/<auth_code>/<voice_input>"
-@app.route("/everyday/wear/rest/api/speech/output/<temp>/<auth_code>/<voice_input>")
-def basic_command(temp, auth_code, voice_input):
-    if "schedule" in voice_input.lower() :
-      auth_code = f"{temp}/{auth_code}"
-      print(auth_code)
+#"https://ccghwd.pythonanywhere.com/everyday/wear/rest/api/speech/output/<prefix>/<auth_code>/<voice_input>"
+@app.route("/everyday/wear/rest/api/speech/output/<prefix>/<auth_code>/<voice_input>")
+def analyze_command(prefix, auth_code, voice_input):
+    auth_code = f"{prefix}/{auth_code}"
+    if "schedule" in voice_input.lower():
       output = calander(voice_input, auth_code)
+    elif "notes" in voice_input.lower():
+       output = "notes smth"
+       output = pull_up_notes(voice_input)
     else:
-       output = "no sched"
+       output = general_gpt(voice_input)
     return output
     #return output # f"Anv passed {voice_input} with code {auth_code}"
 
+def general_gpt(voice_input):
+  client = OpenAI(
+    api_key=open_ai_key
+  ) 
+  completion = client.chat.completions.create(
+  model="gpt-3.5-turbo",
+  messages=[
+    {"role": "system", "content": "You are a helpful assistant Jarvis who responds in less than 20 words"},
+    {"role": "user", "content": voice_input}
+    ]
+  ) 
+  return completion.choices[0].message.content  
+
+def pull_up_notes(voice_input):
+  with open(PATH + 'static/notes.txt', 'r') as file:
+    # Read all lines of the file
+    notes = file.readlines()
+  prompt = f"Based on the command - \"{voice_input}\", return the relevant notes for the user \
+  from the following (answer in less than 20 words and remove any non alphanumeric \
+  characters): {notes}" 
+  client = OpenAI(
+    api_key=open_ai_key
+  ) 
+  
+  completion = client.chat.completions.create(
+  model="gpt-3.5-turbo",
+  messages=[
+    {"role": "user", "content": prompt}
+    ]
+  ) 
+  return completion.choices[0].message.content  
 
 def calander(voice_input, auth_code):
   client = OpenAI(
     api_key=open_ai_key
   )
+  
 
   mic_record = voice_input
 
@@ -189,7 +223,9 @@ def calander(voice_input, auth_code):
       ],
       }
     event = service.events().insert(calendarId='primary', body=event).execute()
-    event = f"Event : {data['name']},\n When : {start_timestamp},\n"
+    event_date = datetime.strftime('%B %d, %Y')  
+    event_time = datetime.strftime('%I:%M %p')  
+    event = f"Event : {data['name']},\n When : {event_date} at {event_time},\n"
 
     print (event)
     return event
