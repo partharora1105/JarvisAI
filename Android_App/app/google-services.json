@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "137591440076",
+    "project_id": "river-sunlight-280901",
+    "storage_bucket": "river-sunlight-280901.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137591440076:android:e874f292f416782a6cf869",
+        "android_client_info": {
+          "package_name": "com.vuzix.ultralite.sample"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "137591440076-f4b6hco1tp5pis59lbevhrcd7bn924jr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vuzix.ultralite.sample",
+            "certificate_hash": "22d6f23a32b43d9a3efc5b046145100e675cd09d"
+          }
+        },
+        {
+          "client_id": "137591440076-7sa937qr4tvi3q4tnm3tmobmpil33dkn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABZaCXXb5i7GfC4bRIrbwxPOK_p0HEZbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "137591440076-7sa937qr4tvi3q4tnm3tmobmpil33dkn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

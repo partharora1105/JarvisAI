@@ -27,7 +27,8 @@ render.experimental.xml
 *.keystore
 
 # Google Services (e.g. APIs or Firebase)
-google-services.json
 
 # Android Profiling
 *.hprof
+.vscode/settings.json
+new_res/new_credential.json
