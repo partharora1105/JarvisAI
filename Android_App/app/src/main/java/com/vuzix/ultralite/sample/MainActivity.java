@@ -1,6 +1,7 @@
 package com.vuzix.ultralite.sample;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -23,6 +24,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -174,17 +179,34 @@ public class MainActivity extends AppCompatActivity {
 
     private void googleSignIn() {
         Intent intent = mGoogleSignInClient.getSignInIntent();
-        startActivityForResult(intent, RC_SIGN_IN);
+        //startActivityForResult(intent, RC_SIGN_IN); // Deprecated. To be removed
+        startActivityResultLauncher.launch(intent);
     }
 
-    @Override
+    ActivityResultLauncher<Intent> startActivityResultLauncher;
+    {startActivityResultLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            new ActivityResultCallback<ActivityResult>() {
+                @Override
+                public void onActivityResult(ActivityResult result) {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        Intent data = result.getData();
+                        Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+                        handleSignInResult(task);
+                    }
+                }
+            });
+    }
+
+    // Deprecated - To remove
+    /*@Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == RC_SIGN_IN){
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             handleSignInResult(task);
         }
-    }
+    }*/
 
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
